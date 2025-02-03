@@ -1,1 +1,5 @@
-flwr tensorflow scikit-learn ucimlrepo numpy
+flwr 
+tensorflow 
+scikit-learn 
+ucimlrepo 
+numpy
