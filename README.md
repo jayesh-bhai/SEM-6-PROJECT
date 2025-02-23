@@ -1,3 +1,6 @@
+This is my SEMESTER 6 project and it is based on Machine Learning.
+
+
 # **PhishNet-FL: Federated Learning for Phishing Detection**  
 
 PhishNet-FL is a federated learning system designed to detect phishing websites while preserving user data privacy. Using **Flower** for federated learning and **TensorFlow** for deep learning, PhishNet-FL enables multiple clients to collaboratively train a phishing detection model without sharing raw data.  
@@ -117,4 +120,4 @@ This ensures privacy-preserving, decentralized machine learning across multiple 
 💡 Found a bug? Have a feature request? Feel free to open an issue or contribute!  
 📧 Reach out if you have any questions or need help setting up PhishNet-FL.  
 
-Happy training! 🚀🔐  
+Happy training! 🚀🔐
