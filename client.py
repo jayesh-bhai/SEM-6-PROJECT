@@ -3,54 +3,59 @@ import flwr as fl
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from ucimlrepo import fetch_ucirepo
 import sys
 
 def load_client_data(client_id: int, total_clients: int):
-    """Load and partition data for specific client"""
-    print(f"Fetching dataset for client {client_id}...")
+    """Load and partition data for a specific client from local CSV"""
+    print(f"Loading dataset for client {client_id} from local CSV...")
+
+    # Load CSV file
+    df = pd.read_csv("Processed-Data/processed_training_dataset_30.csv")  # Ensure the correct filename
     
-    # Fetch dataset using ucimlrepo
-    phishing_websites = fetch_ucirepo(id=327)
-    
-    # Get features and targets
-    X = phishing_websites.data.features.values
-    y = phishing_websites.data.targets.values
-    
-    # Ensure y is binary (0, 1)
+    # Separate features (X) and target (y)
+    X = df.iloc[:, :-1].values  # All columns except the last one as features
+    y = df.iloc[:, -1].values   # Last column as target (phishing or not)
+
+    # Ensure y is binary (0 or 1)
     y = (y == 1).astype(int)
-    
+
     # Standardize features
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
-    
+
     # Partition data for this client
     samples_per_client = len(X) // total_clients
     start_idx = client_id * samples_per_client
     end_idx = start_idx + samples_per_client if client_id < total_clients - 1 else len(X)
-    
+
     print(f"Client {client_id} data shape: {X[start_idx:end_idx].shape}")
     return X[start_idx:end_idx], y[start_idx:end_idx]
 
 def create_phishing_model():
     """Create and compile the model for phishing detection"""
-    model = keras.Sequential([
-        keras.layers.Dense(64, activation='relu', input_shape=(30,)),
-        keras.layers.Dropout(0.2),
-        keras.layers.Dense(32, activation='relu'),
-        keras.layers.Dropout(0.2),
-        keras.layers.Dense(16, activation='relu'),
-        keras.layers.Dense(1, activation='sigmoid')
-    ])
+    
+    inputs = keras.layers.Input(shape=(30,))  # Define the input layer
+    x = keras.layers.Dense(64, activation='relu')(inputs)
+    x = keras.layers.Dropout(0.3)(x)
+    x = keras.layers.Dense(32, activation='relu')(x)
+    x = keras.layers.Dropout(0.3)(x)
+    x = keras.layers.Dense(16, activation='relu')(x)
+    outputs = keras.layers.Dense(1, activation='sigmoid')(x)
+    
+    model = keras.Model(inputs=inputs, outputs=outputs)  # Create model
     
     model.compile(
         optimizer='adam',
         loss='binary_crossentropy',
         metrics=['accuracy']
     )
+    
     return model
+
 
 class PhishingClient(fl.client.NumPyClient):
     def __init__(self, client_id: int, total_clients: int):
@@ -72,7 +77,7 @@ class PhishingClient(fl.client.NumPyClient):
         history = self.model.fit(
             self.X_train, self.y_train,
             epochs=3,
-            batch_size=32,
+            batch_size=16,
             validation_split=0.1,
             verbose=1
         )
@@ -100,13 +105,24 @@ def main():
     print(f"Starting client {client_id} of {total_clients} total clients")
     print(f"Connecting to server at {server_ip}:8080")
     
-    # Initialize and start client
-    client = PhishingClient(client_id, total_clients)
-    fl.client.start_client(
-        server_address=f"{server_ip}:8080",
-        client=client.to_client(),
-        grpc_max_message_length=1024*1024*1024
-    )
+    try:
+        # Initialize and start client
+        client = PhishingClient(client_id, total_clients)
+        print(f"Client {client_id} initialized successfully, attempting to connect to server...")
+        
+        fl.client.start_numpy_client(
+            server_address=server_ip + ":8080",
+            client=client
+        )
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        sys.exit(1)
+    
+    # Wait for training to complete
+    
+    print(f"Client {client_id} finished training")
+    print(f"Client {client_id} exiting...")
+    sys.exit(0)  
 
 if __name__ == "__main__":
     main()

@@ -1,112 +1,98 @@
-# client.py (use for client1.py, client2.py, client3.py)
 import flwr as fl
 import tensorflow as tf
 from tensorflow import keras
-import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
-from ucimlrepo import fetch_ucirepo
-import sys
+import pickle
 
-def load_client_data(client_id: int, total_clients: int):
-    """Load and partition data for specific client"""
-    print(f"Fetching dataset for client {client_id}...")
-    
-    # Fetch dataset using ucimlrepo
-    phishing_websites = fetch_ucirepo(id=327)
-    
-    # Get features and targets
-    X = phishing_websites.data.features.values
-    y = phishing_websites.data.targets.values
-    
-    # Ensure y is binary (0, 1)
-    y = (y == 1).astype(int)
-    
-    # Standardize features
-    scaler = StandardScaler()
-    X = scaler.fit_transform(X)
-    
-    # Partition data for this client
-    samples_per_client = len(X) // total_clients
-    start_idx = client_id * samples_per_client
-    end_idx = start_idx + samples_per_client if client_id < total_clients - 1 else len(X)
-    
-    print(f"Client {client_id} data shape: {X[start_idx:end_idx].shape}")
-    return X[start_idx:end_idx], y[start_idx:end_idx]
+# Define a simple model for global aggregation
+def get_model():
+    inputs = keras.layers.Input(shape=(30,))  # Define input layer
+    x = keras.layers.Dense(64, activation='relu')(inputs)
+    x = keras.layers.Dense(32, activation='relu')(x)
+    x = keras.layers.Dense(16, activation='relu')(x)
+    outputs = keras.layers.Dense(1, activation='sigmoid')(x)
 
-def create_phishing_model():
-    """Create and compile the model for phishing detection"""
-    model = keras.Sequential([
-        keras.layers.Dense(64, activation='relu', input_shape=(30,)),
-        keras.layers.Dropout(0.2),
-        keras.layers.Dense(32, activation='relu'),
-        keras.layers.Dropout(0.2),
-        keras.layers.Dense(16, activation='relu'),
-        keras.layers.Dense(1, activation='sigmoid')
-    ])
-    
+    model = keras.Model(inputs=inputs, outputs=outputs)  # Create model
     model.compile(
         optimizer='adam',
         loss='binary_crossentropy',
-        metrics=['accuracy']
+        metrics=['accuracy']  # Make sure this matches what your clients are using
     )
     return model
 
-class PhishingClient(fl.client.NumPyClient):
-    def __init__(self, client_id: int, total_clients: int):
-        self.model = create_phishing_model()
-        
-        # Load and split data
-        print(f"Initializing client {client_id}...")
-        X, y = load_client_data(client_id, total_clients)
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42
-        )
-        print(f"Client {client_id} initialized with {len(self.X_train)} training samples")
-    
-    def get_parameters(self, config):
-        return self.model.get_weights()
-    
-    def fit(self, parameters, config):
-        self.model.set_weights(parameters)
-        history = self.model.fit(
-            self.X_train, self.y_train,
-            epochs=3,
-            batch_size=32,
-            validation_split=0.1,
-            verbose=1
-        )
-        print(f"Training completed - Loss: {history.history['loss'][-1]:.4f}")
-        return self.model.get_weights(), len(self.X_train), {
-            "loss": history.history["loss"][-1]
-        }
-    
-    def evaluate(self, parameters, config):
-        self.model.set_weights(parameters)
-        loss, accuracy = self.model.evaluate(self.X_test, self.y_test, verbose=0)
-        print(f"Evaluation - Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
-        return loss, len(self.X_test), {"accuracy": accuracy}
+def save_model(strategy):
+    """Save the global model after training is complete"""
+    model = get_model()  # Create a model with the same architecture
 
-def main():
-    # Parse command line arguments
-    if len(sys.argv) != 4:
-        print("Usage: python client.py <client_id> <total_clients> <server_ip>")
-        sys.exit(1)
+    if hasattr(strategy, 'initial_parameters'):
+        parameters = strategy.initial_parameters
+        if parameters is not None:
+            model.set_weights(parameters)
+            
+            try:
+                # Test if model can make predictions
+                test_input = tf.random.normal((1, 30))
+                _ = model.predict(test_input)
+                
+                # Save the model files
+                model.save('Trained-Model/global_model.h5')
+                print("✅ Global model saved as 'global_model.h5'")
+                
+                with open('Trained-Model/global_model_weights.pkl', 'wb') as f:
+                    pickle.dump(model.get_weights(), f)
+                print("✅ Global model weights saved.")
+                
+                with open('Trained-Model/global_model_architecture.json', 'w') as f:
+                    f.write(model.to_json())
+                print("✅ Global model architecture saved.")
+                
+                return True
+            except Exception as e:
+                print(f"❌ Error validating model: {str(e)}")
+                return False
     
-    client_id = int(sys.argv[1])
-    total_clients = int(sys.argv[2])
-    server_ip = sys.argv[3]
-    
-    print(f"Starting client {client_id} of {total_clients} total clients")
-    print(f"Connecting to server at {server_ip}:8080")
-    
-    # Initialize and start client
-    client = PhishingClient(client_id, total_clients)
-    fl.client.start_client(
-        server_address=f"{server_ip}:8080",
-        client=client.to_client(),
-        grpc_max_message_length=1024*1024*1024
+    print("❌ Failed to retrieve model parameters.")
+    return False
+
+def get_strategy():
+    def weighted_average(metrics):
+        if not metrics:
+            return {}
+            
+        # Get all available metrics from first client
+        weights = [num_examples for num_examples, _ in metrics]
+        total_examples = sum(weights)
+        
+        metrics_aggregated = {}
+        for metric_name in metrics[0][1].keys():
+            weighted_metric = sum(
+                num_examples * m[metric_name]
+                for num_examples, m in metrics
+            ) / total_examples
+            metrics_aggregated[metric_name] = weighted_metric
+            
+        return metrics_aggregated
+
+    return fl.server.strategy.FedAvg(
+        fraction_fit=0.5,
+        fraction_evaluate=0.5,
+        min_fit_clients=2,
+        min_evaluate_clients=2,
+        min_available_clients=2,
+        fit_metrics_aggregation_fn=weighted_average,
+        evaluate_metrics_aggregation_fn=weighted_average
     )
 
-if __name__ == "__main__":
-    main()
+# Define strategy
+strategy = get_strategy()
+
+# Start the Flower server
+fl.server.start_server(
+    server_address="0.0.0.0:8080",
+    config=fl.server.ServerConfig(num_rounds=3),
+    strategy=strategy
+)
+
+# Save the final model using the strategy
+save_model(strategy)
+
+print("✅ Server stopped.")
