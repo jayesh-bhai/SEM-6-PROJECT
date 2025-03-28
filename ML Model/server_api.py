@@ -6,7 +6,8 @@ import pickle
 app = Flask(__name__)
 
 # ✅ Load the trained model
-model = load_model("global_model.h5")
+model = load_model("Trained-Model/global_model_sahiel.h5")
+
 
 @app.route("/predict", methods=["POST"])
 def predict():
