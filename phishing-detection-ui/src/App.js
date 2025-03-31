@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import axios from "axios";
 import "./App.css";
 
 function App() {
@@ -120,12 +119,14 @@ function App() {
     }
 
     try {
+
+      const features = extractFeatures(validUrl);
       const response = await fetch("http://127.0.0.1:5000/predict", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ features }),
       });
     
       if (!response.ok) {
@@ -137,6 +138,7 @@ function App() {
       setIsPhishing(data.is_phishing); // Ensure isPhishing is updated
     } catch (error) {
       console.error("Error fetching data:", error);
+      setError("Failed to analyze URL. Please try again.");
     }
     
   };
