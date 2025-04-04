@@ -1,12 +1,13 @@
+from flask_cors import CORS
 from flask import Flask, request, jsonify
 from tensorflow.keras.models import load_model
 import numpy as np
-import pickle
 
 app = Flask(__name__)
+CORS(app)  # Enable CORS for all routes
 
 # ✅ Load the trained model
-model = load_model("Trained-Model/global_model_sahiel.h5")
+model = load_model("ml-model/Trained-Model/global_model_sahiel.h5")
 
 
 @app.route("/predict", methods=["POST"])
