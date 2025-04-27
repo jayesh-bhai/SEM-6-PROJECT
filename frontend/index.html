@@ -1,26 +1,84 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>PhishNet - Home</title>
-  <link rel="stylesheet" href="style.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PhishGuard - Phishing Detection Portal</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <h1>PhishNet: Detect Phishing URLs</h1>
-    <p>
-      Phishing attacks are one of the most common cyber threats. 
-      PhishNet helps you identify malicious links using advanced machine learning.
-    </p>
+    <header>
+        <div class="logo">
+            <!-- <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 6L12 14" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M12 18H12.01" stroke="#4F46E5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg> -->
+            <svg class="logo-icon" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 1.33334L2 3.33334V7.33334C2 10.9467 4.56 14.28 8 15.3333C11.44 14.28 14 10.9467 14 7.33334V3.33334L8 1.33334Z" stroke="#4a6cf7" stroke-width="1.33333" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>PhishGuard</span>
+        </div>
+        <nav>
+            <ul>
+                <li class="active"><a href="index.html">Home</a></li>
+                <li><a href="predict.html">Prediction</a></li>
+            </ul>
+        </nav>
+    </header>
 
-    <h2>Features:</h2>
-    <ul>
-      <li>Real-time phishing URL detection</li>
-      <li>Powered by AI/ML trained models</li>
-      <li>Simple and fast to use</li>
-    </ul>
+    <main>
+        <section class="hero">
+            <h1>Protect Yourself from Phishing Attacks</h1>
+            <p>Our advanced detection system helps you identify malicious URLs before they can harm you.</p>
+            <a href="predict.html" class="btn primary-btn">Check URL</a>
+        </section>
 
-    <button onclick="window.location.href='predict.html'">Check a URL</button>
-  </div>
+        <section class="info-grid">
+            <div class="info-card">
+                <h2>What is Phishing?</h2>
+                <p>Phishing is a cybercrime where attackers disguise themselves as trustworthy entities to steal sensitive information. They use deceptive emails and websites to steal your data and money.</p>
+            </div>
+            <div class="info-card">
+                <h2>Common Signs</h2>
+                <p>Suspicious URLs, spelling errors, urgent requests, and unexpected attachments are common signs of phishing. Always verify before clicking links or downloading files.</p>
+            </div>
+            <div class="info-card">
+                <h2>How to Stay Safe</h2>
+                <p>Verify sender identities, don't click suspicious links, use our URL checker, and keep your software updated to protect yourself from phishing attacks.</p>
+            </div>
+        </section>
+
+        <section class="detection-info">
+            <h2>How Our Detection Works</h2>
+            <p>Our advanced algorithm analyzes URLs for common phishing patterns and security risks.</p>
+            
+            <div class="detection-grid">
+                <div class="detection-card">
+                    <h3>URL Analysis</h3>
+                    <p>We examine the structure and components of URLs to identify potential threats and suspicious patterns.</p>
+                </div>
+                <div class="detection-card">
+                    <h3>Content Inspection</h3>
+                    <p>Our system analyzes webpage content for phishing indicators and signs of malicious intent.</p>
+                </div>
+                <div class="detection-card">
+                    <h3>Domain Verification</h3>
+                    <p>We check domain registration information and history to assess legitimacy and trustworthiness.</p>
+                </div>
+                <div class="detection-card">
+                    <h3>Machine Learning</h3>
+                    <p>We use advanced AI models trained on thousands of phishing examples to detect new threats.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 PhishGuard - All rights reserved</p>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>
